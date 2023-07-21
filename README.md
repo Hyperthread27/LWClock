@@ -1,3 +1,12 @@
+Forked from Lightwell-bg's project that I found on Thingiverse. Tweaked to fit my needs and get working on my hardware. I am using the RTC and BME280 in my build. 
+
+Other changes:
+-Metric to Imperial
+-Changed hardware address for BME280 based on vendor documentation
+-Sensor info and weather displays every 15 minutes
+
+
+
 # LW-Clock (Clock, Weather, temperature, humidity, atmospheric pressure, creeping line, remote monitoring)
 Compact clock has a variety of functions: Perfect time, Alarm, Measurement of temperature, humidity and atmosphere pressure indoors, Forecasting download, Upload submission to MQTT & Thingspeak server, Display of any predetermined information at set time. Clock has low power consumption and provides high display brightness.
 
