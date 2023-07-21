@@ -1,4 +1,4 @@
-#define SECS_PER_HOUR 60*60
+#define SECS_PER_HOUR (3600UL)
 #define daylightOffset_sec 60*60
 String sNtpServerName2 = "pool.ntp.org";
 String sNtpServerName3 = "time.nist.gov";

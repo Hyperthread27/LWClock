@@ -3,17 +3,17 @@
 
 const String nName = "LWClock_"; //"LWScreen_"; "LWClock_"; 
 const String nVersion = "v2.1";
-#define USE_RTC true //USE RTC chip DS3231 
+#define USE_RTC false //USE RTC chip DS3231 
 #define USE_BME280 true //USE sensor BME280 (5V) http://got.by/40d52x
 #define USE_DHT false //USE sensor DHT
 #define MAX_DEVICES 4  //Number of indicator modules MAX7219
-#include <ESP8266WiFi.h>       
-#include <ESP8266WebServer.h> 
-#include <ESP8266HTTPClient.h>  
+#include <ESP8266WiFi.h>     
+#include <ESP8266WebServer.h>
+#include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
-#include <ESP8266SSDP.h> 
+#include <ESP8266SSDP.h>
 #include <Updater.h>//for update firmware and SPIFFS
-#include <FS.h>  
+#include <FS.h>
 #include <SPI.h>
 #include <Wire.h> // must be included here so that Arduino library object file references work              
 #include <ArduinoJson.h>        //https://github.com/bblanchon/ArduinoJson.git
@@ -122,7 +122,7 @@ sCatalog  catalog[] = {
 };
 
 char buf[256]; //For MD PAROLA
-String logo = "LIGHTWELL";
+String logo = "Hello!";
 const char* day_ru[] PROGMEM = {"Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"};
 const char* day_bg[] PROGMEM = {"Неделя", "Понеделник", "Вторник", "Сряда", "Четвертък", "Петък", "Събота"};
 const char* day_en[] PROGMEM = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -133,10 +133,10 @@ const char* month_en[] PROGMEM = {"January", "February", "March", "April", "May"
 const char** month_table[] PROGMEM = {month_ru, month_bg, month_en};
 
 // Wi-Fi setting
-String ssid = "hlanbg2.4";
-String password = "";
+String ssid = "SSID";
+String password = "SSIDPASSWORD";
 String ssidAP = "LWClock";   // SSID AP 
-String passwordAP = ""; // AP password
+String passwordAP = "LWClock"; // AP password
 String SSDP_Name = "LWClock"; // SSDP name
 String apIP = "192.168.4.1";
 
@@ -145,25 +145,25 @@ String jsonConfig = "{}";
 uint8_t lang = 2; //0-RU, 1-BG, 2 -EN, 3-UA
 unsigned long timeCount = 0; //Time counter for All
 //Time
-int8_t timezone = 3;               // Time zone GTM
+int8_t timezone = -5;              // Time zone GMT
 bool isDayLightSaving = true; //Summer time use
 String sNtpServerName = "us.pool.ntp.org";
 bool statusUpdateNtpTime = 1; //
 const unsigned long TIME_UPDATE = 1000*60*10; //Time update interval
-const unsigned long NTP_UPDATE = 1000*30; //Интервал обновления с NTP при отсутствии ответа сервера
+const unsigned long NTP_UPDATE = 1000*30;
 unsigned long lastNtpTime = 0;
-// Central European Time (Frankfurt, Paris)
-TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European Summer Time
-TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Time
-Timezone CE(CEST, CET);
+// US Central Time (Chicago)
+TimeChangeRule CDT = {"CDT", Second, Sun, Mar, 2, -300};  // Central Daylight Time (UTC-5)
+TimeChangeRule CST = {"CST", First, Sun, Nov, 2, -360};   // Central Standard Time (UTC-6)
+Timezone CT(CDT, CST);
 TimeChangeRule *tcr;
 
 //Display TEXT
-uint32_t  displayClockCount = 0; //counter for time of display CLOCK
+uint32_t  displayClockCount = 900000; //counter for time of display CLOCK (15 minutes)
 bool displayClockFirst = true; //Flag for entering to display CLOCK first (Заход в процедуру отображения часов первый раз. Чтобы отображать нужный интервавл displayClockCount)
 char  szTime[9];    // hh:mm\0
-String strText0="", strText1="LIGHTWELL", strText2="", strText3="";
-bool isTxtOn0 = false, isTxtOn1 = true, isTxtOn2 = false, isTxtOn3 = false;
+String strText0="", strText1="Konnichiwa", strText2="", strText3="";
+bool isTxtOn0 = false, isTxtOn1 = false, isTxtOn2 = false, isTxtOn3 = false;
 bool isCrLine0 = false, isCrLine1 = true, isCrLine2 = false, isCrLine3 = false;
 float txtFrom0=0, txtFrom1=0, txtFrom2=0, txtFrom3=0; 
 float txtTo0=24, txtTo1=24, txtTo2=24, txtTo3=24;
@@ -186,20 +186,20 @@ float global_start = 0, global_stop = 24; //Working time
 
 // Weather server setting
 String  W_URL  = "api.openweathermap.org";
-String  W_API    = "****************************"; 
-String  CITY_ID     = "732770"; // Other city code http://bulk.openweathermap.org/sample/city.list.json.gz
+String  W_API    = "************************************"; 
+String  CITY_ID     = "*******"; // Other city code http://bulk.openweathermap.org/sample/city.list.json.gz
 String strWeather, strWeatherFcast, strSea; //strSea - for future use
 const unsigned long PER_GET_WEATHER = 1000*60*6;
 const unsigned long PER_GET_WEATHER_FCAST = 1000*60*11;
 const unsigned long PER_GET_SEA = 1000*60*15;
 unsigned long lastTimeWeather = 0; unsigned long lastTimeWeatherFcast = 0, lastTimeSea=0;
-const char* overboard[] PROGMEM = {"За бортом ", "Извън борда ", "Overboard "};
-const char* overboardfcast[] PROGMEM = {"Завтра за бортом ", "Утре извън борда ", "Tomorrow overboard "};
+const char* overboard[] PROGMEM = {"За бортом ", "Извън борда ", "Weather: "};
+const char* overboardfcast[] PROGMEM = {"Завтра за бортом ", "Утре извън борда ", "Weather Tomorrow: "};
 const char* temper[] PROGMEM = {". \xC5 ", ". \xC5 ", ". \xC5 "};
-const char* hum[] PROGMEM = {"\xC2С. \xC6 ", "\xC2С. \xC6 ", "\xC2С. \xC6 "};
+const char* hum[] PROGMEM = {"°F. Æ", "°F. Æ", "°F. Æ"};
 const char* pres[] PROGMEM = {"% \xC8 ", "% \xC8 ", "% \xC8 "};
-const char* wind[] PROGMEM = {"мм. \xC7 ", "мм. \xC7 ", "mm. \xC7 "};
-const char* windsp[] PROGMEM = {" м/с ", " м/с ", " m/s "};
+const char* wind[] PROGMEM = {"hPa \xC7 ", "hPa \xC7 ", "hPa \xC7 "};
+const char* windsp[] PROGMEM = {" mph ", " mph ", " mph "};
 const char* windir_ru[] PROGMEM = {"С-В ", "В ", "Ю-В ", "Ю ", "Ю-З ", "З ", "С.-З ", "С "};
 const char* windir_bg[] PROGMEM = {"С-И ", "И ", "Ю-И ", "Ю ", "Ю-З ", "З ", "С-З ", "С "};
 const char* windir_en[] PROGMEM = {"N-E ", "E ", "S-E ", "S ", "S-W ", "W ", "N-W ", "N "};
@@ -207,7 +207,7 @@ const char** windir_table[] PROGMEM = {windir_ru, windir_bg, windir_en};
 const char* cloudstxt[] PROGMEM = {" \xC9 ", " \xC9 ", " \xC9 "};
 const char* forecast[] PROGMEM = {"Завтра  ", "Утре ", "Tomorrow "};
 const char* tempermin[] PROGMEM = {". \xC5.мин ", ". \xC5.мин ", ". \xC5.min "};
-const char* tempermax[] PROGMEM = {"\xC2С макс ", "\xC2С макс ", "\xC2С max "};
+const char* tempermax[] PROGMEM = {"°F макс ", "°F макс ", "°F max "};
 const char* tempersea[] PROGMEM = {"Темп.моря ", "Морската вода ", "Sea temp "};
 const char* onboard[] PROGMEM = {"На борту темп ", "На борда темп ", "Onboard air "};
 const char* temperIn[] PROGMEM = {"Темп", "Темп ", "Temp"};
@@ -231,13 +231,13 @@ unsigned long timeStopAlarm = 0; //Отсчет времени активнос�
 
 //sensor
 bool dataCorrect = false; //use correction for temp and hum depending brightness 
-bool hpa = false; //Pressure hPa or mm for MQTT
+bool hpa = true; //Pressure hPa or mm for MQTT
 
 //mqtt
 bool mqttOn = false;
 char mqttData[80]; //array for send to  MQTT
-String mqtt_server = "m24.cloudmqtt.com"; // Name of MQTT server
-int mqtt_port = 16728; //  MQTT port
+String mqtt_server = ""; // Name of MQTT server
+int mqtt_port = 1; //  MQTT port
 String mqtt_user = "fnncrtrr"; // MQTT login
 String mqtt_pass = ""; // MQTT pass
 String mqtt_name = "LWClock";
@@ -253,9 +253,9 @@ unsigned long lastTimePHT = 0; const unsigned long PER_GET_THP = 1000*60*3; //ge
 //thingspeak.com
 unsigned long tspeakDhtTime = 0;  const unsigned long TSPEAK_SEND_INT = 1000*60*10; //TSPEAK send interval
 bool tspeakOn = false;
-String tspeak_server = "api.thingspeak.com";
-unsigned long tspeak_channal = 111111;
-String tspeak_wapi = "HMW4HF3BRC7OIGSO";  
+String tspeak_server = "";
+unsigned long tspeak_channal = 1;
+String tspeak_wapi = "";  
 
 //predefine functions
 String GetTime(bool s=false); //s - показывать секунды

@@ -78,10 +78,11 @@ String GetTime(bool s) { //s - show seconds
     return "";
   }
 }
-
-void getTimeDisp(char *psz, bool f) { // Code for reading clock time for displey only
+void getTimeDisp(char *psz, bool f) {
   time_t tn = now();
-  sprintf(psz, "%02d%c%02d", hour(tn), (f ? ':' : ' '), minute(tn));
+  int hr = hourFormat12(tn);
+  if (hr == 0) hr = 12; // convert 0 to 12 for 12-hour format
+  sprintf(psz, "%d%c%02d %cM", hr, (f ? ':' : ' '), minute(tn));
 }
 
 

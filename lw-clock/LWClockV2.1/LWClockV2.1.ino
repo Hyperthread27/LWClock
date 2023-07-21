@@ -107,7 +107,8 @@ void loop() {
   }  
 #endif
   time_t tn = now();
-  float nowtime = hour(tn)+float(minute(tn))/100;
+  int hour_now = hour(tn)+float(minute(tn))/100;
+  float nowtime = hour_now + float(minute(tn)) / 100;
   if (oldnowtime != nowtime) {Serial.println("nowtime: "+ String(nowtime)); oldnowtime = nowtime;} //****************************
   if (compTimeInt(global_start, global_stop, nowtime)) { //Global check the time of display data
     if (modeShow > maxModeShow) modeShow = 1;
@@ -119,17 +120,16 @@ void loop() {
       if (isLedClock && compTimeInt(clockFrom, clockTo, nowtime)) {
         //showText(GetTime(), PA_CENTER, catalog[rnd].speed*speedTicker, 5000, catalog[rnd].effect, catalog[rnd].effect);
         displayTime(false);
-        if (millis()-displayClockCount >=6000) {
-          displayTime(true);
-          modeShow++;
-          P.displayReset();        
-        }
-      }
-      else {
-        modeShow++;  
+      if ((minute(tn) % 15 == 0) && (second(tn) == 0)) {  // Check if the minutes read 00, 15, 30, or 45}
+        displayTime(true);
+        modeShow++;
+        P.displayReset();        
       }
     }
-    
+    else {
+      modeShow++;  
+    }
+  }
     if (modeShow == 2) { //Show creeping line 1
       float nowtime = hour(tn)+float(minute(tn))/100; 
       //Serial.print("txtFrom0: ");Serial.print(txtFrom0);Serial.print(" nowtime: ");Serial.println(nowtime);
@@ -258,34 +258,23 @@ void loop() {
       float nowtime = hour(tn)+float(minute(tn))/100;
       if (isLedTHP&& compTimeInt(thpFrom, thpTo, nowtime)) {
         if (millis() - lastTimePHT > PER_GET_THP) { //чтобы не грузить
-          #if USE_DHT == true 
-            //strTHP = onboard[lang] + getTempDHT() + hum[lang] + getHumDHT() + "%";
-            tempUP = getTempDHT()+"\xC3"; humUp = getHumDHT()+"%";
-          #endif   
           #if USE_BME280 == true
             //strTHP = onboard[lang] + getTempBME280() + hum[lang] + getHumBME280() + pres[lang] + getPressBME280() + "mm";
-            tempUP = getTempBME280(dataCorrect, 1)+"\xC3"; humUp = getHumBME280(dataCorrect, 0)+"%"; pressUP = getPressBME280(0)+"\xC4";
+            tempUP = getTempBME280(dataCorrect, 1)+"\xC5"; humUp = getHumBME280(dataCorrect, 0)+"%"; pressUP = getPressBME280(0)+"\xC4";
           #endif  
           Serial.println(strTHP);
           lastTimePHT = millis();
-        } 
-        #if USE_DHT == true 
-        if (modeShowUP > 2) modeShowUP = 1;
-        //if (modeShowUP==1) modeShowUP +=showTextUP(temperIn[lang], 5*speedTicker, 500, PA_SCROLL_UP, PA_SCROLL_UP, false); 
-        if (modeShowUP==1) modeShowUP +=showTextUP(tempUP, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_LEFT, false); 
-        //if (modeShowUP==3) modeShowUP +=showTextUP(humIn[lang], 5*speedTicker, 500, PA_SCROLL_UP, PA_SCROLL_UP, false);
-        if (modeShowUP==2) modeShowUP +=showTextUP(humUp, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_RIGHT, true);         
-        //showText(strTHP, PA_LEFT, 5*speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
-        #endif 
+        }  
         #if USE_BME280 == true 
         //if (modeShowUP > 6) modeShowUP = 1;
-        if (modeShowUP > 3) modeShowUP = 1;
+        if (modeShowUP > 4) modeShowUP = 1;
         //if (modeShowUP==1) modeShowUP +=showTextUP(temperIn[lang], 5*speedTicker, 500, PA_SCROLL_UP, PA_SCROLL_UP, false); 
-        if (modeShowUP==1) modeShowUP +=showTextUP(tempUP, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_LEFT, false); 
+        if (modeShowUP==1) modeShowUP += showTextUP("Home:", 5*speedTicker, 500, PA_SCROLL_UP, PA_SCROLL_UP_LEFT, false);
+        if (modeShowUP==2) modeShowUP += showTextUP(tempUP, 5*speedTicker, 1250, PA_SCROLL_UP, PA_SCROLL_UP_LEFT, false);
         //if (modeShowUP==3) modeShowUP +=showTextUP(humIn[lang], 5*speedTicker, 500, PA_SCROLL_UP, PA_SCROLL_UP, false);
-        if (modeShowUP==2) modeShowUP +=showTextUP(humUp, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_RIGHT, false); 
+        if (modeShowUP==3) modeShowUP +=showTextUP(humUp, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_RIGHT, false); 
         //if (modeShowUP==5) modeShowUP +=showTextUP(presIn[lang], 5*speedTicker, 500, PA_SCROLL_UP, PA_SCROLL_UP, false);
-        if (modeShowUP==3) modeShowUP +=showTextUP(pressUP, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_RIGHT, true);                 
+        if (modeShowUP==4) modeShowUP +=showTextUP(pressUP, 5*speedTicker, 1750, PA_SCROLL_UP, PA_SCROLL_UP_RIGHT, true);                 
         //showText(strTHP, PA_LEFT, 5*speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
         #endif           
       }

@@ -1,12 +1,10 @@
-#if (USE_BME280 == true || USE_DHT == true) 
+#define USE_BME280 true
 
 void init_sensor() {
-#if USE_DHT == true
-  dht.begin(); 
-#endif //DHT
+
 #if USE_BME280 == true // I2C D1, D2
   bme280.parameter.communication = 0;                  //Choose communication protocol
-  bme280.parameter.I2CAddress = 0x76;                  //Choose I2C Address 0x77
+  bme280.parameter.I2CAddress = 0x77;                  //Choose I2C Address 0x77
   //0b00:     In sleep mode no measurements are performed, but power consumption is at a minimum
   //0b01:     In forced mode a single measured is performed and the device returns automatically to sleep mode
   //0b11:     In normal mode the sensor measures continually (default value)
@@ -28,43 +26,11 @@ void init_sensor() {
 #endif //BME280 
 }
 
-#if USE_DHT == true
-String getTempDHT() {
-  float h = dht.readHumidity(); 
-  float t = dht.readTemperature(); 
-  if (isnan(t) || isnan(h))  {
-    Serial.println("Failed to read Temp from DHT");
-    return "";
-  }
-  else {
-    // Compute heat index in Celsius (isFahreheit = false)
-    float hic = dht.computeHeatIndex(t, h, false);
-    String tempDHT = String(hic, 1); 
-    Serial.print("Temperature: "); Serial.print(tempDHT); Serial.println("°C");     
-    return tempDHT;      
-  }
-}
-
-String getHumDHT() {
-  float h = dht.readHumidity(); 
-  if (isnan(h))  {
-    Serial.println("Failed to read Hum from DHT");
-    return "";
-  }
-  else {
-    // Compute heat index in Celsius (isFahreheit = false)
-    String humDHT = String(h, 0); 
-    Serial.print("Humidity: "); Serial.print(humDHT); Serial.println("%");     
-    return humDHT;      
-  }
-}
-#endif //DHT
-
 #if USE_BME280 == true // I2C D1, D2
 String getTempBME280(bool correct, uint8_t pr) { //correct depending brightness and sign after point
-  float tempBME = bme280.readTempC();
+  float tempBME = bme280.readTempF();
   uint8_t brightnow = 0; 
-  Serial.print("Temperature: "); Serial.print(tempBME); Serial.println("°C"); 
+  Serial.print("Temperature: "); Serial.print(tempBME); Serial.println("°F"); 
   if (correct) {
       time_t tn = now();
       float nowtime = hour(tn)+float(minute(tn))/100;
@@ -119,7 +85,8 @@ String getTempBME280(bool correct, uint8_t pr) { //correct depending brightness 
           tempBME = tempBME - 6.38;
         break;
       } 
-      Serial.print("Temperature cor: "); Serial.print(tempBME); Serial.println("°C");
+      tempBME = (tempBME * 1.8) + 32; //Convert to Fahrenheit
+      Serial.print("Temperature in Fahrenheit: "); Serial.print(tempBME); Serial.println("°F");
   }    
   return String(tempBME, pr);
 }
@@ -196,5 +163,3 @@ String getPressBME280(bool hpa, uint8_t pr) { //unit of press and sign after poi
   else     return String(pressBME*0.750062, pr);  
 }
 #endif //BME280 
-
-#endif

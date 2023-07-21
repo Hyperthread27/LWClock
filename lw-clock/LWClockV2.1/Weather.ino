@@ -8,7 +8,7 @@ String GetWeather() {
   }  
   Serial.print(F("connecting to ")); Serial.println(W_URL);
   String wStrURL = String("GET /data/2.5/weather?id=") + CITY_ID; 
-  wStrURL += "&units=metric&appid=" + W_API;
+  wStrURL += "&units=imperial&appid=" + W_API;
   switch (lang) {
     case 0:
       wStrURL += "&lang=ru";
@@ -90,7 +90,7 @@ String GetWeatherForecast() {
   }  
   Serial.print(F("connecting to ")); Serial.println(W_URL);
   String wStrURL = String("GET /data/2.5/forecast?id=") + CITY_ID; 
-  wStrURL += "&units=metric&appid=" + W_API;
+  wStrURL += "&units=imperial&appid=" + W_API;
   switch (lang) {
     case 0:
       wStrURL += "&lang=ru";

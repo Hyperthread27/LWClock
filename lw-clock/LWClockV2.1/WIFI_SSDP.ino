@@ -10,7 +10,7 @@ void SSDP_init(void) {
   SSDP.setURL("/");
   SSDP.setModelName(nName);
   SSDP.setModelNumber(nVersion);
-  SSDP.setModelURL("http://"+(WiFi.status() != WL_CONNECTED ? WiFi.softAPIP() : WiFi.localIP()));
+  SSDP.setModelURL("http://" + (WiFi.status() != WL_CONNECTED ? WiFi.softAPIP().toString() : WiFi.localIP().toString()));
   SSDP.setManufacturer("LIGHTWELL");
   SSDP.setManufacturerURL("https://led-lightwell.eu");
   SSDP.begin();
