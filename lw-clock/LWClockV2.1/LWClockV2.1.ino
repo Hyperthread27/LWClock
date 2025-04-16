@@ -1,6 +1,9 @@
 //Multifunctional clock based on ESP8266 и MAX79xxx for Home Automation (IoT)
 #include "config.h"
 
+// Declare MQTTLine as an external variable
+extern String MQTTLine;
+
 void setup() {
   Serial.begin(115200);
   FS_init(); Serial.println(F("Start FS"));   //Run FS
@@ -58,6 +61,32 @@ void setup() {
 
 uint8_t oldModeShow = 0; //****************************
 float oldnowtime = 111; //****************************
+
+void displayShowText(String message) {
+  Serial.println("Displaying showtext: " + message);
+
+  // Clear the display and set the text
+  P.displayClear();
+  P.displayText(message.c_str(), PA_CENTER, 5 * speedTicker, 10000, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+
+  // Start the display animation
+  P.displayAnimate();
+  unsigned long startTime = millis();
+
+  // Keep the message displayed for 10 seconds
+  while (millis() - startTime < 10000) {
+    if (P.displayAnimate()) {
+      // Restart the animation if it finishes
+      P.displayReset();
+    }
+    delay(1);
+  }
+
+  // Reset the display and switch back to the clock
+  modeShow = 1;
+  P.displayClear();
+  P.displayReset();
+}
 
 void loop() {
   HTTP.handleClient();
@@ -133,16 +162,14 @@ void loop() {
     if (modeShow == 2) { //Show creeping line 1
       float nowtime = hour(tn)+float(minute(tn))/100; 
       //Serial.print("txtFrom0: ");Serial.print(txtFrom0);Serial.print(" nowtime: ");Serial.println(nowtime);
-      if (isTxtOn0 && compTimeInt(txtFrom0, txtTo0, nowtime)) {
+      // Add a check to ensure strText0 is not empty
+      if (isTxtOn0 && compTimeInt(txtFrom0, txtTo0, nowtime) && !strText0.isEmpty()) {
         if (isCrLine0) {
-          showText(strText0, PA_LEFT, 5*speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);  
+          showText(strText0, PA_LEFT, 5 * speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+        } else {
+          showText(strText0, PA_CENTER, catalog[rnd].speed * speedTicker, catalog[rnd].pause * 3, catalog[rnd].effect, catalog[rnd].effect);
         }
-        else {
-          showText(strText0, PA_CENTER, catalog[rnd].speed*speedTicker, catalog[rnd].pause*3, catalog[rnd].effect, catalog[rnd].effect);
-          //showText(catalog[rnd].psz, just, catalog[rnd].speed*speedTicker, catalog[rnd].pause, catalog[rnd].effect, catalog[rnd].effect);        
-        }
-      }
-      else {
+      } else {
         modeShow++;
       }
     }
@@ -174,19 +201,18 @@ void loop() {
       }
     }  
   
-    if (modeShow == 5) { //Show weather forecast
-      float nowtime = hour(tn)+float(minute(tn))/100;
-      if (isLedForecast && compTimeInt(fcastFrom, fcastTo, nowtime)) {
-        if (millis() - lastTimeWeatherFcast > PER_GET_WEATHER_FCAST) { //чтобы не грузить сервер и часы
-          strWeatherFcast = GetWeatherForecast();
-          lastTimeWeatherFcast = millis();
-        }    
-        showText(strWeatherFcast, PA_LEFT, 5*speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+    if (modeShow == 5) { // Show weather
+      float nowtime = hour(tn) + float(minute(tn)) / 100;
+      if (isLedWeather && compTimeInt(weathFrom, weathTo, nowtime)) {
+        if (millis() - lastTimeWeather > PER_GET_WEATHER) { // Avoid overloading the server
+          strWeather = GetWeather();
+          lastTimeWeather = millis();
+        }
+        showText(strWeather, PA_LEFT, 5 * speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+      } else {
+        modeShow++;
       }
-      else {
-        modeShow++;  
-      }    
-    }      
+    }
     
     if (modeShow == 6) { //Show creeping line 3
       float nowtime = hour(tn)+float(minute(tn))/100; 
@@ -220,22 +246,37 @@ void loop() {
         modeShow++;
       }
     }   
-    if (modeShow == 8) { //Show weather
-      float nowtime = hour(tn)+float(minute(tn))/100;
-      if (isLedWeather && compTimeInt(weathFrom, weathTo, nowtime)) {
-        if (millis() - lastTimeWeather > PER_GET_WEATHER) { //чтобы не грузить сервер и часы
-          //Serial.print(" PER_GET_WEATHER: "); Serial.println(PER_GET_WEATHER);
-          strWeather = GetWeather();
-          lastTimeWeather = millis();
-        }    
-        showText(strWeather, PA_LEFT, 5*speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+    if (modeShow == 8) { // Show weather forecast
+      float nowtime = hour(tn) + float(minute(tn)) / 100;
+      if (isLedForecast && compTimeInt(fcastFrom, fcastTo, nowtime)) {
+        if (millis() - lastTimeWeatherFcast > PER_GET_WEATHER_FCAST) { // Avoid overloading the server
+          strWeatherFcast = GetWeatherForecast();
+          lastTimeWeatherFcast = millis();
+        }
+        showText(strWeatherFcast, PA_LEFT, 5 * speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+      } else {
+        modeShow++;
       }
-      else {
-        modeShow++;  
-      }    
     }
-    if (modeShow == 9) { //Show creeping line from MQTT
-      showText(crLine, PA_LEFT, 5*speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+    else if (modeShow == 9) { // Show creeping line from MQTT
+      float nowtime = hour(tn) + float(minute(tn)) / 100;
+      if (compTimeInt(mqttFrom, mqttTo, nowtime)) { // Check if within the defined time range
+        if (!MQTTLine.isEmpty()) {
+          Serial.println("Displaying MQTTLine in mode 9: " + MQTTLine); // Debug output
+          Serial.println("MQTTLine length: " + String(MQTTLine.length())); // Print string length
+
+          // Calculate display duration based on string length
+          int displayDuration = MQTTLine.length() * 200; // Example: 200ms per character
+
+          // Display MQTTLine with dynamic duration
+          showText(MQTTLine, PA_LEFT, 5 * speedTicker, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+        } else {
+          Serial.println("MQTTLine is empty in mode 9, skipping display."); // Debug output
+        }
+      } else {
+        Serial.println("Outside mqttFrom and mqttTo range, skipping mode 9 display."); // Debug output
+      }
+      modeShow++; // Increment modeShow after displaying
     }
     if (modeShow == 10) { //Show  SEA Temp
       float nowtime = hour(tn)+float(minute(tn))/100;
@@ -297,3 +338,4 @@ void loop() {
   }
   delay(1); 
 }
+

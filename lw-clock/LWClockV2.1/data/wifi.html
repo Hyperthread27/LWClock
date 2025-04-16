@@ -14,7 +14,7 @@
             function set_ssid(submit) {
                 server = "/ssid?ssid=" + val('ssid') + "&password=" + encodeURIComponent(val('password'))+"&ssidAP=" + val('ssidap') + "&passwordAP=" + encodeURIComponent(val('passwordAp'))+"&ssdp=" + val('ssdp');
                 send_request(submit,server);
-                alert("Изменения вступят в силу после перезагрузки");
+                alert("Settings saved successfully. Changes will take effect after reboot.");
             }
         </script>
     </head>

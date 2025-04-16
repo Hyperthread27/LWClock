@@ -47,6 +47,7 @@
                 <a class="link__img" href="/time.html"><span class="ico__text">Time</span></a>
                 <a class="link__img" href="/setup.html"><span class="ico__text">Setup</span></a>
                 <a class="link__img" href="/help.html"><span class="ico__text">Help</span></a>
+                <a class="link__img" href="/mqtt.html"><span class="ico__text">MQTT</span></a>
                 <a class="link__img" href="#"><span class="ico__text" onclick="restart(this,'ResetESP?');">Restart</span></a>
             </div>
             <titles>
@@ -114,6 +115,7 @@
 									<option value="22.3"> 22:30 </option>
 									<option value="23"> 23:00 </option>
 									<option value="23.3"> 23:30 </option>
+									<option value="24"> 24:00 </option>
                                 </select>
                             </td>
                             <td>
@@ -330,6 +332,7 @@
 									<option value="22.3"> 22:30 </option>
 									<option value="23"> 23:00 </option>
 									<option value="23.3"> 23:30 </option>
+									<option value="24"> 24:00 </option>
                                 </select>
                             </td>
                             <td>
@@ -778,6 +781,7 @@
 									<option value="22.3"> 22:30 </option>
 									<option value="23"> 23:00 </option>
 									<option value="23.3"> 23:30 </option>
+									<option value="24"> 24:00 </option>
                                 </select>
                             </td>
                             <td>
@@ -889,6 +893,7 @@
 									<option value="22.3"> 22:30 </option>
 									<option value="23"> 23:00 </option>
 									<option value="23.3"> 23:30 </option>
+									<option value="24"> 24:00 </option>
                                 </select>
                             </td>
                             <td>
@@ -1000,6 +1005,7 @@
 									<option value="22.3"> 22:30 </option>
 									<option value="23"> 23:00 </option>
 									<option value="23.3"> 23:30 </option>
+									<option value="24"> 24:00 </option>
                                 </select>
                             </td>
                             <td>
@@ -1111,6 +1117,7 @@
 									<option value="22.3"> 22:30 </option>
 									<option value="23"> 23:00 </option>
 									<option value="23.3"> 23:30 </option>
+									<option value="24"> 24:00 </option>
                                 </select>
                             </td>
                             <td>
@@ -1289,6 +1296,24 @@
                 </center>
                 <br>
                 <span class="save_booton" id="save1" onclick="set_texts(this);"></span>
+                <br>
+                <button class="save_booton" onclick="startDisplayLoop();">Start Display Loop</button>
+                <script>
+                    function startDisplayLoop() {
+                        fetch('/startDisplayLoop')
+                            .then(response => {
+                                if (response.ok) {
+                                    alert('Display loop started successfully!');
+                                } else {
+                                    alert('Failed to start display loop.');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error starting display loop:', error);
+                                alert('Error starting display loop.');
+                            });
+                    }
+                </script>
             </div>
             <div class="menu_unit" id="langs">
                 <a><span class="ico__text" onclick="set_lang_f(this, 'EN');">EN</span></a>			

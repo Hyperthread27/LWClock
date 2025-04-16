@@ -4,7 +4,7 @@
 const String nName = "LWClock_"; //"LWScreen_"; "LWClock_"; 
 const String nVersion = "v2.1";
 #define USE_RTC false //USE RTC chip DS3231 
-#define USE_BME280 true //USE sensor BME280 (5V) http://got.by/40d52x
+#define USE_BME280 false //USE sensor BME280 (5V) http://got.by/40d52x
 #define USE_DHT false //USE sensor DHT
 #define MAX_DEVICES 4  //Number of indicator modules MAX7219
 #include <ESP8266WiFi.h>     
@@ -25,7 +25,7 @@ const String nVersion = "v2.1";
 #include <PubSubClient.h> //"https://github.com/knolleary/pubsubclient.git"
 #include "NetCrtESP.h" //https://github.com/Lightwell-bg/NetCrtESP
 //#include "ESPTimeFunc.h" //https://github.com/Lightwell-bg/ESPTimeFunc
-#if USE_RTC == true
+#if USE_RTC == false
   #include "RTClib.h" //https://github.com/adafruit/RTClib
   RTC_DS3231 rtc;
 #endif
@@ -57,6 +57,9 @@ File fsUploadFile;
 NetCrtESP myWIFI;
 WiFiClient ESPclient;
 PubSubClient mqttClient(ESPclient);
+
+// Ensure MQTTLine is initialized properly
+String MQTTLine = "";
 
 //For dispalay name of device
 #if USE_RTC == true
@@ -124,7 +127,7 @@ sCatalog  catalog[] = {
 char buf[256]; //For MD PAROLA
 String logo = "Hello!";
 const char* day_ru[] PROGMEM = {"Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"};
-const char* day_bg[] PROGMEM = {"Неделя", "Понеделник", "Вторник", "Сряда", "Четвертък", "Петък", "Събота"};
+const char* day_bg[] PROGMEM = {"Неделя", "Понеделник", "Вторник", "Сряда", "Четвъртък", "Петък", "Събота"};
 const char* day_en[] PROGMEM = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 const char** day_table[] PROGMEM = {day_ru, day_bg, day_en};
 const char* month_ru[] PROGMEM = {"Января", "Февраля", "Марта", "Апреля", "Мая", "Июня", "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"};
@@ -137,7 +140,20 @@ String ssid = "SSID";
 String password = "SSIDPASSWORD";
 String ssidAP = "LWClock";   // SSID AP 
 String passwordAP = "LWClock"; // AP password
-String SSDP_Name = "LWClock"; // SSDP name
+
+// Generate a unique device name using the last 3 bytes of the MAC address
+String getUniqueDeviceName() {
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  char uniqueSuffix[8];
+  sprintf(uniqueSuffix, "_%02X%02X%02X", mac[3], mac[4], mac[5]); // Use the last 3 bytes of the MAC address
+  return String("LWClock") + uniqueSuffix;
+}
+
+// Update the global MQTT name and SSDP name
+String mqtt_name = getUniqueDeviceName();
+String SSDP_Name = mqtt_name;
+
 String apIP = "192.168.4.1";
 
 
@@ -160,7 +176,7 @@ TimeChangeRule *tcr;
 
 //Display TEXT
 uint32_t  displayClockCount = 900000; //counter for time of display CLOCK (15 minutes)
-bool displayClockFirst = true; //Flag for entering to display CLOCK first (Заход в процедуру отображения часов первый раз. Чтобы отображать нужный интервавл displayClockCount)
+bool displayClockFirst = true; //Flag for entering to display CLOCK first 
 char  szTime[9];    // hh:mm\0
 String strText0="", strText1="Konnichiwa", strText2="", strText3="";
 bool isTxtOn0 = false, isTxtOn1 = false, isTxtOn2 = false, isTxtOn3 = false;
@@ -234,15 +250,13 @@ bool dataCorrect = false; //use correction for temp and hum depending brightness
 bool hpa = true; //Pressure hPa or mm for MQTT
 
 //mqtt
-bool mqttOn = false;
+bool mqttOn = true;
 char mqttData[80]; //array for send to  MQTT
-String mqtt_server = ""; // Name of MQTT server
-int mqtt_port = 1; //  MQTT port
-String mqtt_user = "fnncrtrr"; // MQTT login
-String mqtt_pass = ""; // MQTT pass
-String mqtt_name = "LWClock";
-String mqtt_sub_crline = "LWClock/crLine"; //Topic for subcribe to creeping line
-String crLine = "";
+String mqtt_server = "127.0.0.1"; // Name of MQTT server
+int mqtt_port = 1883; //  MQTT port
+String mqtt_user = "mqtt-user"; // MQTT login
+String mqtt_pass = "mqtt-user"; // MQTT pass
+String mqtt_sub_crline = "LWClock/MQTTLine"; //Topic for subcribe to creeping line
 unsigned long ReconnectTime = 0;  const unsigned long MQTT_CONNECT = 1000*60*3;
 String mqtt_pub_temp = "LWClock/temp"; 
 String mqtt_pub_hum = "LWClock/hum";
@@ -250,12 +264,18 @@ String mqtt_pub_press = "LWClock/press";
 unsigned long mqttDhtTime = 0;  const unsigned long MQTT_SEND_INT = 1000*60*7; //MQTT send interval
 unsigned long lastTimePHT = 0; const unsigned long PER_GET_THP = 1000*60*3; //get sensor data Period 
 
+float mqttFrom = 0.0; // Start time for MQTT display mode
+float mqttTo = 24.0;  // End time for MQTT display mode
+
 //thingspeak.com
 unsigned long tspeakDhtTime = 0;  const unsigned long TSPEAK_SEND_INT = 1000*60*10; //TSPEAK send interval
 bool tspeakOn = false;
 String tspeak_server = "";
 unsigned long tspeak_channal = 1;
 String tspeak_wapi = "";  
+
+String mqttMessage = ""; // Holds the latest MQTT message
+bool mqttMessageReceived = false; // Flag to indicate a new MQTT message was received
 
 //predefine functions
 String GetTime(bool s=false); //s - показывать секунды

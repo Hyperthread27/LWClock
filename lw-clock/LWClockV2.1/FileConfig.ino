@@ -81,7 +81,8 @@ bool loadConfig() {
     mqtt_pub_temp = root["mqtt_pub_temp"].as<String>();
     mqtt_pub_hum = root["mqtt_pub_hum"].as<String>();
     mqtt_pub_press = root["mqtt_pub_press"].as<String>();
-    //crLine = root["crLine"].as<String>();
+    //MQTTLine = root["crLine"].as<String>();
+    MQTTLine = root["crLine"].as<String>();
     isLedTHP = root["isLedTHP"];
     thpFrom = root["thpFrom"]; thpTo = root["thpTo"];
     tspeakOn = root["tspeakOn"];
@@ -178,6 +179,7 @@ bool saveConfig() {
   json["alarm2_m"] = myAlarm[1].alarm_m;
   json["alarm2_stat"] = myAlarm[1].alarm_stat;       
   json["cVersion"] = cVersion;
+  json["crLine"] = MQTTLine;
   serializeJson(json, jsonConfig);
   File configFile = SPIFFS.open("/myconfig.json", "w");
   if (!configFile) {

@@ -29,7 +29,18 @@ void server_httpinit(void) {
   HTTP.on("/Sensor", handle_Sensors);
   HTTP.on("/restart", handle_Restart);   // reset ESP
   HTTP.on("/resetConfig", handle_resetConfig);      
-  HTTP.begin();  
+
+  // Add MQTT settings endpoint
+  HTTP.on("/mqtt_settings", HTTP_GET, []() {
+      StaticJsonDocument<128> json;
+      json["mqtt_name"] = mqtt_name;
+      String response;
+      serializeJson(json, response);
+      HTTP.send(200, "application/json", response);
+  });
+
+  HTTP.begin();
+  Serial.println("HTTP server started");
 }
 
 void handle_ConfigJSON() { 

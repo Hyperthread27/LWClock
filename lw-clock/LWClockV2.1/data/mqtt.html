@@ -44,10 +44,22 @@
                 server = "/tspeakOn?tspeakOn=" + val_sw("tspeakOn");
                 send_request(submit, server);
 				alert("Ok");
-            }			
+            }	
+            function loadMQTTSettings() {
+                // Fetch the current MQTT settings from the server
+                fetch('/mqtt_settings')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('mqtt_name_display').textContent = data.mqtt_name || 'Unavailable';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching MQTT settings:', error);
+                        document.getElementById('mqtt_name_display').textContent = 'Error loading MQTT name';
+                    });
+            }		
         </script>
     </head>
-    <body onload = "load();">
+    <body onload = "load(); loadMQTTSettings();">
         <header>
             <span class="opt_cn" id="header"></span><br>
             <span class="opt_cn" id="P_time_informer"></span>
@@ -103,7 +115,7 @@
                     </tr>
                     <tr>
                         <td align = "right"><span class="opt_cn" id="P_mqtt_port"></span></td>
-                        <td><input type="text" class="field form-control" id="mqtt_port" value="{{mqtt_port}}" pattern="[\d]{5}"><br>
+                        <td><input type="text" class="field form-control" id="mqtt_port" value="{{mqtt_port}}" pattern="[\d]{4}"><br>
                     </tr>
                     <tr>
                         <td align = "right"><span class="opt_cn" id="P_mqtt_user"></span></td>
@@ -149,7 +161,9 @@
 					<span class="opt_cn" id="P_tspeak_informer"></span>
 					<a href="https://thingspeak.com" align="center" target="_blank"> thingspeak.com</a>
 				</div>  
-
+                <div class="informer">
+                    <p>Current MQTT Name: <span id="mqtt_name_display">Loading...</span></p>
+                </div>
                 <hr>
                 <label class="switch">
                     <span class="opt_cn" id="P_tspeak_mqttOn"></span>
